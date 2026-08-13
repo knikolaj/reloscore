@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reloscore</title>
+<style>
+  :root {
+    --paper: #eceef1; --surface: #ffffff; --surface-2: #f5f6f8; --ink: #1b2431;
+    --muted: #5c6776; --hair: #d9dde3; --hair-strong: #c3c9d2; --accent: #0f7b82;
+    --accent-ink: #0a5459; --accent-wash: #e3f1f1; --pass: #2f7d5f; --pass-wash: #e4f1ea;
+    --fail: #b23c31; --fail-wash: #f6e3e0; --core: #b3701a; --core-wash: #f6ecdc;
+    --shadow: 0 1px 2px rgba(27,36,49,.06), 0 8px 24px rgba(27,36,49,.06);
+    --serif: "Iowan Old Style", "Charter", "Georgia", "Times New Roman", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #10151c; --surface: #1a212b; --surface-2: #212a35; --ink: #e7eaef;
+      --muted: #98a3b2; --hair: #2c3742; --hair-strong: #3a4653; --accent: #37b2ba;
+      --accent-ink: #7fd6db; --accent-wash: #123338; --pass: #5bb98c; --pass-wash: #14302a;
+      --fail: #dd6b5d; --fail-wash: #38211f; --core: #d79b4d; --core-wash: #33291a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #eceef1; --surface: #ffffff; --surface-2: #f5f6f8; --ink: #1b2431;
+    --muted: #5c6776; --hair: #d9dde3; --hair-strong: #c3c9d2; --accent: #0f7b82;
+    --accent-ink: #0a5459; --accent-wash: #e3f1f1; --pass: #2f7d5f; --pass-wash: #e4f1ea;
+    --fail: #b23c31; --fail-wash: #f6e3e0; --core: #b3701a; --core-wash: #f6ecdc;
+    --shadow: 0 1px 2px rgba(27,36,49,.06), 0 8px 24px rgba(27,36,49,.06);
+  }
+  :root[data-theme="dark"] {
+    --paper: #10151c; --surface: #1a212b; --surface-2: #212a35; --ink: #e7eaef;
+    --muted: #98a3b2; --hair: #2c3742; --hair-strong: #3a4653; --accent: #37b2ba;
+    --accent-ink: #7fd6db; --accent-wash: #123338; --pass: #5bb98c; --pass-wash: #14302a;
+    --fail: #dd6b5d; --fail-wash: #38211f; --core: #d79b4d; --core-wash: #33291a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1440px; margin: 0 auto; padding: clamp(6px, 1.2vw, 14px) clamp(12px, 2.2vw, 26px) 80px; }
+
+  .tabs { display: inline-flex; gap: 0; background: var(--surface-2); border: 1px solid var(--hair); border-radius: 10px; padding: 3px; margin-bottom: 16px; position: sticky; top: 8px; z-index: 5; }
+  .tab { border: none; background: transparent; padding: 7px 18px; border-radius: 8px; font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; transition: background .15s, color .15s; }
+  .tab.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .wsum { font-family: var(--mono); font-size: 12.5px; color: var(--muted); margin-left: auto; }
+  .wsum b { color: var(--ink); }
+  button.act, select.act { font-family: var(--sans); font-size: 13.5px; cursor: pointer; border-radius: 8px; border: 1px solid var(--hair-strong); background: var(--surface); color: var(--ink); padding: 8px 14px; transition: background .15s, border-color .15s, transform .05s; }
+  button.act:hover, select.act:hover { border-color: var(--accent); }
+  button.act:active { transform: translateY(1px); }
+  select.act.primary { border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tablecard { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+  thead th { position: sticky; top: 0; background: var(--surface-2); z-index: 2; border-bottom: 1px solid var(--hair-strong); vertical-align: top; }
+  th.crit, td.crit { min-width: 208px; }
+  th.wcol, td.wcol { width: 46px; min-width: 46px; text-align: center; border-left: 1px solid var(--hair); background: color-mix(in srgb, var(--accent-wash) 45%, transparent); }
+  th.pcol, td.pcol { width: 46px; min-width: 46px; text-align: center; border-right: 1px solid var(--hair); background: color-mix(in srgb, var(--fail-wash) 40%, transparent); }
+  td.pcol.na, td.wcol.na { background: transparent; color: var(--muted); }
+  th.wcol, th.pcol { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+  th.wcol { color: var(--accent-ink); } th.pcol { color: var(--fail); }
+  .crit-name { font-weight: 500; display: inline; }
+  .crit-lvl { font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: .04em; margin-top: 1px; }
+  .info { border: 1px solid var(--hair-strong); background: var(--surface); color: var(--muted); font-family: var(--serif); font-style: italic; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; line-height: 1; padding: 0; margin-left: 7px; cursor: pointer; vertical-align: middle; }
+  .info:hover, .info.on { border-color: var(--accent); color: var(--accent); background: var(--accent-wash); }
+  .thr { font-family: var(--mono); font-size: 9px; color: var(--fail); background: var(--fail-wash); border: 1px solid var(--fail); border-radius: 4px; padding: 1px 5px; margin-left: 6px; letter-spacing: .03em; white-space: nowrap; }
+
+  .wt-input, .mp-input { font-family: var(--mono); font-size: 13px; font-weight: 600; text-align: center; width: 36px; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 2px; font-variant-numeric: tabular-nums; }
+  .wt-input { color: var(--accent-ink); } .mp-input { color: var(--fail); }
+  .wt-input:hover, .mp-input:hover { border-color: var(--hair-strong); background: var(--surface); }
+  .wt-input:focus, .mp-input:focus { border-color: var(--accent); background: var(--surface); }
+  .mp-input.zero { color: var(--muted); opacity: .5; }
+
+  .blockhead td { background: var(--surface-2); font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); padding-top: 12px; padding-bottom: 8px; font-weight: 600; }
+  .blockhead.gates td { color: var(--fail); }
+  .bsum { color: var(--accent-ink); font-weight: 400; font-size: 11px; }
+  .rnote { font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+  :root { --s1:#2a78d6; --s2:#1baf7a; --s3:#eda100; --s4:#008300; --s5:#4a3aa7; --s6:#e34948; --s7:#e87ba4; --s8:#eb6834; }
+  @media (prefers-color-scheme: dark){ :root { --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s4:#008300; --s5:#9085e9; --s6:#e66767; --s7:#d55181; --s8:#d95926; } }
+  :root[data-theme="dark"] { --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s4:#008300; --s5:#9085e9; --s6:#e66767; --s7:#d55181; --s8:#d95926; }
+  :root[data-theme="light"] { --s1:#2a78d6; --s2:#1baf7a; --s3:#eda100; --s4:#008300; --s5:#4a3aa7; --s6:#e34948; --s7:#e87ba4; --s8:#eb6834; }
+  :root { --lb0:#0f7b82; --lb1:#b3701a; --lb2:#5646c4; --lb3:#c2557f; --pmz-wash:#ece8fb; }
+  @media (prefers-color-scheme: dark){ :root { --lb0:#37b2ba; --lb1:#d79b4d; --lb2:#9085e9; --lb3:#e087ac; --pmz-wash:#241f38; } }
+  :root[data-theme="dark"] { --lb0:#37b2ba; --lb1:#d79b4d; --lb2:#9085e9; --lb3:#e087ac; --pmz-wash:#241f38; }
+  :root[data-theme="light"] { --lb0:#0f7b82; --lb1:#b3701a; --lb2:#5646c4; --lb3:#c2557f; --pmz-wash:#ece8fb; }
+  .rating-layout { display: flex; gap: 24px; align-items: flex-start; }
+  .rating-layout .viz { flex: 1 1 60%; min-width: 340px; }
+  .rating-col { flex: 1 1 40%; min-width: 260px; padding-top: 0; }
+  .blegend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+  .bdot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+  @media (max-width: 860px){ .rating-layout { flex-direction: column; } .rating-layout .viz, .rating-col { min-width: 0; width: 100%; } }
+  .viz h3 { font-family: var(--serif); font-size: 17px; font-weight: 600; margin: 0 0 2px; }
+  svg#radar { width: 100%; max-width: 760px; height: auto; display: block; margin: 6px auto 0; }
+  .ring { fill: none; stroke: var(--hair); stroke-width: 1; }
+  .raxis { stroke: var(--hair); stroke-width: 1; }
+  .axlab { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
+  .petal { fill: none; stroke-width: 2; stroke-linejoin: round; }
+
+  .rubric-row td { padding: 0; border-bottom: 1px solid var(--hair); }
+  .rubric-row .rubric-inner { display: none; padding: 12px 16px; background: var(--surface-2); font-size: 12.5px; }
+  .rubric-row.open .rubric-inner { display: block; }
+  .rubric-inner .rt { display: grid; grid-template-columns: 34px 1fr; gap: 4px 10px; align-items: start; max-width: 760px; }
+  .rubric-inner .rnum { font-family: var(--mono); font-weight: 600; text-align: center; border-radius: 5px; padding: 1px 0; height: fit-content; }
+  .rnum.hi { color: var(--pass); background: var(--pass-wash); }
+  .rnum.mid { color: var(--core); background: var(--core-wash); }
+  .rnum.lo { color: var(--fail); background: var(--fail-wash); }
+  .rubric-inner .rgate { color: var(--muted); }
+
+  .cityhead { min-width: 92px; }
+  .cityhead .ctop { display: flex; align-items: center; gap: 4px; justify-content: space-between; }
+  .cityname { font-family: var(--serif); font-size: 15px; font-weight: 600; border: none; background: transparent; color: var(--ink); width: 100%; padding: 2px 0; }
+  .cityname:hover { text-decoration: underline dotted var(--hair-strong); }
+  .rm { border: none; background: transparent; color: var(--muted); font-size: 15px; line-height: 1; padding: 2px 4px; border-radius: 5px; cursor: pointer; }
+  .rm:hover { color: var(--fail); background: var(--fail-wash); }
+  .cityscore { font-family: var(--mono); font-size: 16px; font-weight: 700; margin-top: 5px; font-variant-numeric: tabular-nums; color: var(--accent-ink); display: flex; align-items: baseline; gap: 3px; }
+  .cityscore small { font-size: 9px; font-weight: 400; color: var(--muted); letter-spacing: .05em; }
+  .cityscore.gated { color: var(--fail); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+
+  select.score, select.gate { font-family: var(--mono); font-size: 13px; border: 1px solid var(--hair-strong); background: var(--surface); color: var(--ink); border-radius: 7px; padding: 5px 4px; width: 100%; cursor: pointer; }
+  select.gate[data-v="pass"] { background: var(--pass-wash); color: var(--pass); border-color: var(--pass); font-weight: 600; }
+  select.gate[data-v="fail"] { background: var(--fail-wash); color: var(--fail); border-color: var(--fail); font-weight: 600; }
+  select.score.sfail { background: var(--fail-wash); color: var(--fail); border-color: var(--fail); font-weight: 600; }
+  .gaterow td.crit .crit-name { color: var(--ink); }
+  .gaterow td.wcol { color: var(--muted); font-family: var(--mono); font-size: 15px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .sub { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+  .ranklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .ranklist li { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--hair); border-left: 4px solid var(--hair); border-radius: 8px; padding: 5px 12px; box-shadow: var(--shadow); cursor: pointer; }
+  .ranklist li:hover { border-color: var(--accent); }
+  .ranklist li.rsel { background: color-mix(in srgb, var(--accent-wash) 35%, var(--surface)); }
+  .ranklist li.out { opacity: .55; }
+  .ranklist li.ref { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); box-shadow: none; }
+  .r-rank { font-family: var(--serif); font-size: 19px; font-weight: 600; color: var(--muted); text-align: center; }
+  .ranklist li.top .r-rank { color: var(--accent); }
+  .r-name { font-family: var(--serif); font-size: 16px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .reftag { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--hair-strong); border-radius: 4px; padding: 1px 5px; font-weight: 400; }
+  .rreason { font-family: var(--mono); font-size: 9.5px; color: var(--fail); letter-spacing: .04em; font-weight: 400; }
+  .r-score { font-family: var(--mono); font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .badge-out { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--fail); background: var(--fail-wash); border-radius: 5px; padding: 3px 8px; }
+  .gnum { color: var(--muted); font-weight: 600; margin-left: 2px; }
+
+  .pmztable { table-layout: fixed; min-width: 900px; }
+  .pmztable td, .pmztable th { font-size: 13px; vertical-align: top; overflow-wrap: anywhere; }
+  .pmztable th { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .pmztable .cn { font-family: var(--serif); font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .pmztable tr.grp td { border-top: 2px solid var(--hair-strong); }
+  .pmztable .gh { text-align: center; }
+  .pmztable .gh-v { background: color-mix(in srgb, var(--accent-wash) 65%, transparent); color: var(--accent-ink); }
+  .pmztable .gh-p { background: color-mix(in srgb, var(--pmz-wash) 65%, transparent); color: var(--lb2); }
+  .pmztable .gh-m { background: color-mix(in srgb, var(--core-wash) 60%, transparent); color: var(--core); }
+  .pmztable .cv { background: color-mix(in srgb, var(--accent-wash) 28%, transparent); }
+  .pmztable .cp { background: color-mix(in srgb, var(--pmz-wash) 45%, transparent); }
+  .pmztable .cm { background: color-mix(in srgb, var(--core-wash) 28%, transparent); }
+  .pmztable .ctr { text-align: center; font-weight: 600; color: var(--accent-ink); }
+  .pmztable .cn.cx { cursor: pointer; }
+  .cxi { font-family: var(--serif); font-style: italic; font-size: 10px; color: var(--muted); border: 1px solid var(--hair-strong); border-radius: 50%; padding: 0 4px; vertical-align: middle; }
+  .pmztable .cn.cx:hover .cxi, .pmztable .cn.cx.on .cxi { border-color: var(--accent); color: var(--accent); background: var(--accent-wash); }
+  .pmz-detail td { padding: 0; border-bottom: 1px solid var(--hair); }
+  .pmz-detail-inner { display: none; padding: 10px 16px; background: var(--surface-2); font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+  .pmz-detail.open .pmz-detail-inner { display: block; }
+
+  .model-note { background: var(--surface); border: 1px solid var(--hair); border-left: 3px solid var(--accent); border-radius: 10px; padding: 14px 16px; margin-top: 22px; font-size: 13.5px; color: var(--muted); box-shadow: var(--shadow); }
+  .model-note b { color: var(--ink); }
+  .model-note code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; color: var(--accent-ink); }
+  @media (max-width: 620px) { .ranklist li { grid-template-columns: 28px 1fr auto; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="rating" role="tab">Ranking</button>
+    <button class="tab" data-tab="table" role="tab">Matrix</button>
+    <button class="tab" data-tab="pmz" role="tab">PR tracks</button>
+  </div>
+
+  <section id="panel-table" class="panel">
+    <div class="toolbar">
+      <select class="act primary" id="addCity"><option value="">+ Add city…</option></select>
+      <button class="act" id="expandAll">Show all rubrics</button>
+      <button class="act" id="exportBtn">Export</button>
+      <button class="act" id="importBtn">Import</button>
+      <button class="act" id="resetBtn">Reset to defaults</button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+      <span class="wsum" id="wsum"></span>
+    </div>
+    <div class="tablecard">
+      <div class="scroll">
+        <table id="matrix">
+          <thead><tr id="headRow"></tr></thead>
+          <tbody id="body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--fail)"></i> Excluded (threshold)</span>
+      <span><i class="dot" style="background:var(--accent)"></i> Weight 0-10</span>
+      <span><b style="color:var(--fail)">Threshold</b> column: rating below it &rarr; excluded (0 = no threshold)</span>
+    </div>
+  </section>
+
+  <section id="panel-rating" class="panel active">
+    <div class="rating-layout">
+      <div class="viz">
+        <svg id="radar" viewBox="0 0 600 500" role="img" aria-label="City radar by criteria"></svg>
+        <div class="blegend" id="blegend"></div>
+      </div>
+      <div class="rating-col">
+        <div id="results"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-pmz" class="panel">
+    <div class="tablecard"><div class="scroll">
+      <table class="pmztable">
+        <colgroup><col style="width:10%"><col style="width:18%"><col style="width:24%"><col style="width:8%"><col style="width:15%"><col style="width:10%"><col style="width:15%"></colgroup>
+        <thead>
+          <tr><th></th><th colspan="3" class="gh gh-v">Residence permit (obtaining)</th><th colspan="2" class="gh gh-p">Permanent residence</th><th class="gh gh-m">Maintaining</th></tr>
+          <tr><th>Country</th><th>Route</th><th>Income / conditions</th><th>&rarr;PR?</th><th>Time to PR</th><th>Language</th><th>Max. absence</th></tr>
+        </thead>
+        <tbody id="pmzbody"></tbody>
+      </table>
+    </div></div>
+    <p class="sub" style="margin-top: 12px;">* Portugal D8: only the residence form counts toward PR; temporary-stay (up to 1 year) does not.</p>
+  </section>
+
+  <div class="model-note" id="modelNote" style="display:none;">
+    <b>How it's scored.</b> Score = <code>&Sigma; (weight &times; rating/5)</code>, normalized to 100. Weights 0-10 (the "Weight" column). Threshold (the "Threshold" column): if a rating is below the threshold, the city is excluded (non-compensable). Ranking = "where I want to live", not "where I can realistically get status" (the legal side is captured by the PR track + the "PR tracks" tab). Your edits are saved automatically in this browser; use Export/Import to back them up or move them between devices.
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+const ALL_CRITS = BLOCKS.flatMap(b => b.crits);
+const CRIT_BY_ID = Object.fromEntries(ALL_CRITS.map(c=>[c.id,c]));
+
+let cities = [];
+const clone = x => JSON.parse(JSON.stringify(x));
+const DEFAULT_WT = ALL_CRITS.map(c=>c.wt);
+const DEFAULT_MP = ALL_CRITS.map(c=>c.minPass||0);
+function loadDefaults(){ ALL_CRITS.forEach((c,i)=>{ c.wt = DEFAULT_WT[i]; c.minPass = DEFAULT_MP[i]||undefined; }); }
+function load(){ cities = clone(MASTER.slice(0,DEFAULT_TABLE)); loadDefaults(); }
+function topFive(list){ return [...list].filter(c=>!compute(c).gated).sort((a,b)=>compute(b).norm-compute(a).norm).slice(0,5).map(c=>c.name); }
+load();
+function getRef(){ const names=new Set(cities.map(c=>c.name)); return MASTER.filter(m=>!names.has(m.name)); }
+
+// ---- persistence ----
+const LS_KEY = "reloscore-v1";
+function serialize(){
+  return {
+    v:1,
+    cities,
+    weights: Object.fromEntries(ALL_CRITS.map(c=>[c.id, c.wt])),
+    minPass: Object.fromEntries(ALL_CRITS.map(c=>[c.id, c.minPass||0])),
+    radarSel,
+  };
+}
+function saveState(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(serialize())); }catch(e){} }
+function applyState(st){
+  if(!st || typeof st!=="object") return false;
+  if(Array.isArray(st.cities) && st.cities.length) cities = clone(st.cities);
+  if(st.weights) ALL_CRITS.forEach(c=>{ if(st.weights[c.id]!=null) c.wt = Math.max(0,+st.weights[c.id]||0); });
+  if(st.minPass) ALL_CRITS.forEach(c=>{ const v=+st.minPass[c.id]||0; c.minPass = v?v:undefined; });
+  radarSel = Array.isArray(st.radarSel) && st.radarSel.length ? st.radarSel.slice() : topFive(cities);
+  return true;
+}
+function loadStored(){ try{ const raw=localStorage.getItem(LS_KEY); if(!raw) return false; return applyState(JSON.parse(raw)); }catch(e){ return false; } }
+
+const headRow = document.getElementById("headRow");
+const body = document.getElementById("body");
+
+function scoreOptions(v){ let o=""; for(let i=1;i<=5;i++) o+=`<option value="${i}" ${i===v?"selected":""}>${i}</option>`; return o; }
+function binaryOptions(v){ return `<option value="1" ${v==1?"selected":""}>Yes</option><option value="0" ${v==0?"selected":""}>No</option>`; }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+function renderAddOptions(){
+  const sel=document.getElementById("addCity");
+  sel.innerHTML = `<option value="">+ Add city…</option>` +
+    getRef().map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} · ${escapeHtml(c.country)}</option>`).join("");
+}
+
+function render(){
+  const ncols = cities.length + 3;
+  headRow.innerHTML = `<th class="crit">Criterion</th><th class="wcol">Weight</th><th class="pcol">Thresh.</th>` +
+    cities.map((c,ci)=>`<th class="cityhead">
+      <div class="ctop">
+        <input class="cityname" value="${escapeHtml(c.name)}" data-ci="${ci}" aria-label="City name">
+        <button class="rm" data-rm="${ci}" title="Remove from table" aria-label="Remove">&times;</button>
+      </div>
+      <div class="cityscore" data-cs="${ci}"></div>
+    </th>`).join("");
+
+  let rows = "";
+  BLOCKS.forEach(b=>{
+    const bsum = b.crits.reduce((a,c)=>a+c.wt,0);
+    rows += `<tr class="blockhead"><td colspan="${ncols}">${b.title} <span class="bsum">[&Sigma; ${bsum}]</span></td></tr>`;
+    [...b.crits].sort((x,y)=>y.wt-x.wt).forEach(cr=>{
+      const mp = cr.minPass||0;
+      rows += `<tr data-crit="${cr.id}"><td class="crit"><span class="crit-name">${cr.name}</span><button class="info" data-info="${cr.id}" title="Rubric">i</button><div class="crit-lvl">${cr.lvl}</div></td>`;
+      rows += `<td class="wcol"><input class="wt-input" type="number" min="0" step="1" value="${cr.wt}" data-wt="${cr.id}"></td>`;
+      rows += cr.binary ? `<td class="pcol na">&mdash;</td>` : `<td class="pcol"><input class="mp-input ${mp?"":"zero"}" type="number" min="0" max="5" step="1" value="${mp}" data-mp="${cr.id}" title="0 = no threshold"></td>`;
+      cities.forEach((c,ci)=>{
+        if(cr.binary){ const v=c.s[cr.id]??1;
+          rows += `<td><select class="score" data-ci="${ci}" data-s="${cr.id}">${binaryOptions(v)}</select></td>`;
+        } else { const v=c.s[cr.id]||3;
+          rows += `<td><select class="score ${mp&&v<mp?"sfail":""}" data-ci="${ci}" data-s="${cr.id}" ${mp?`data-min="${mp}"`:""}>${scoreOptions(v)}</select></td>`; }
+      });
+      rows += `</tr>`;
+      const rub = cr.binary
+        ? `<div class="rt"><div class="rnum hi">Yes</div><div>${cr.r[0]}</div><div class="rnum lo">No</div><div>${cr.r[2]}</div></div>`
+        : `<div class="rt"><div class="rnum hi">5</div><div>${cr.r[0]}</div><div class="rnum mid">3</div><div>${cr.r[1]}</div><div class="rnum lo">1</div><div>${cr.r[2]}</div></div>`;
+      rows += `<tr class="rubric-row" id="rub-${cr.id}"><td colspan="${ncols}"><div class="rubric-inner">${cr.note?`<div class="rnote">${cr.note}</div>`:""}${rub}</div></td></tr>`;
+    });
+  });
+  if(GATES.length){
+    rows += `<tr class="blockhead gates"><td colspan="${ncols}">Gate &mdash; excludes the candidate</td></tr>`;
+    GATES.forEach(g=>{
+      rows += `<tr class="gaterow" data-crit="${g.id}"><td class="crit"><span class="crit-name">${g.name}</span><button class="info" data-info="${g.id}" title="Rubric">i</button></td>`;
+      rows += `<td class="wcol na">&mdash;</td><td class="pcol na">&mdash;</td>`;
+      cities.forEach((c,ci)=>{ const v=c.g[g.id]||"pass";
+        rows += `<td><select class="gate" data-ci="${ci}" data-g="${g.id}" data-v="${v}"><option value="pass" ${v==="pass"?"selected":""}>Pass</option><option value="fail" ${v==="fail"?"selected":""}>Fail</option></select></td>`; });
+      rows += `</tr>`;
+      rows += `<tr class="rubric-row" id="rub-${g.id}"><td colspan="${ncols}"><div class="rubric-inner"><div class="rgate">${g.rub}</div></div></td></tr>`;
+    });
+  }
+
+  body.innerHTML = rows;
+  wire();
+  updateWsum();
+  renderAddOptions();
+  renderResults();
+}
+
+function wire(){
+  body.querySelectorAll("select.gate").forEach(sel=>{ sel.onchange = e=>{ const {ci,g}=e.target.dataset; cities[ci].g[g]=e.target.value; e.target.dataset.v=e.target.value; renderResults(); }; });
+  body.querySelectorAll("select.score").forEach(sel=>{ sel.onchange = e=>{ const {ci,s}=e.target.dataset; const v=+e.target.value; cities[ci].s[s]=v; const mn=e.target.dataset.min; if(mn) e.target.classList.toggle("sfail", v<+mn); renderResults(); }; });
+  body.querySelectorAll(".wt-input").forEach(inp=>{ inp.oninput = e=>{ CRIT_BY_ID[e.target.dataset.wt].wt=Math.max(0,+e.target.value||0); updateWsum(); renderResults(); }; inp.onchange = ()=>render(); });
+  body.querySelectorAll(".mp-input").forEach(inp=>{ inp.onchange = e=>{ CRIT_BY_ID[e.target.dataset.mp].minPass=Math.max(0,Math.min(5,+e.target.value||0))||undefined; render(); }; });
+  body.querySelectorAll(".info").forEach(btn=>{ btn.onclick = e=>{ const id=e.currentTarget.dataset.info; const row=document.getElementById("rub-"+id); row.classList.toggle("open"); e.currentTarget.classList.toggle("on", row.classList.contains("open")); }; });
+  headRow.querySelectorAll(".cityname").forEach(inp=>{ inp.onchange = e=>{ cities[e.target.dataset.ci].name = e.target.value || "Untitled"; renderResults(); }; });
+  headRow.querySelectorAll(".rm").forEach(btn=>{ btn.onclick = e=>{ cities.splice(+e.target.dataset.rm,1); render(); }; });
+}
+
+function totalWeight(){ return ALL_CRITS.reduce((a,c)=>a+c.wt,0); }
+function updateWsum(){ document.getElementById("wsum").innerHTML = `&Sigma; weights: <b>${totalWeight()}</b>`; }
+
+function compute(c){
+  const reasons = [];
+  if (GATES.some(g => (c.g[g.id]||"pass")==="fail")) reasons.push("gate");
+  ALL_CRITS.forEach(cr=>{ if(cr.minPass && (c.s[cr.id]||3) < cr.minPass) reasons.push("threshold: "+(cr.id==="urban"?"walkability":cr.id==="people"?"people & scene":cr.name.toLowerCase())); });
+  let total = 0;
+  ALL_CRITS.forEach(cr=>{ const raw=c.s[cr.id]; total += cr.binary ? cr.wt*(raw==null?0:raw) : cr.wt*((raw||3)/5); });
+  const maxW = totalWeight() || 1;
+  return { total, norm: total/maxW*100, gated: reasons.length>0, reason: reasons.join(" · ") };
+}
+
+function renderResults(){
+  cities.forEach((c,ci)=>{
+    const cell = headRow.querySelector(`.cityscore[data-cs="${ci}"]`);
+    if(!cell) return;
+    const r = compute(c);
+    cell.classList.toggle("gated", r.gated);
+    cell.innerHTML = r.gated ? "excluded" : `${r.norm.toFixed(1)}<small>/100</small>`;
+  });
+  const all = cities.map(c=>({ c, ref:false, ...compute(c) }))
+    .concat(getRef().map(c=>({ c, ref:true, ...compute(c) })));
+  all.sort((a,b)=> a.gated!==b.gated ? (a.gated?1:-1) : b.norm-a.norm);
+  let rank = 0;
+  document.getElementById("results").innerHTML = `<ol class="ranklist">` + all.map(s=>{
+    if(!s.gated) rank++;
+    const idx=MASTER.findIndex(m=>m.name===s.c.name); const col=seriesColor(idx<0?0:idx); const active=radarSel.includes(s.c.name);
+    return `<li class="${s.gated?"out":""} ${s.ref?"ref":""} ${active?"rsel":""}" data-city="${escapeHtml(s.c.name)}" style="${active?`border-left-color:${col}`:""}">
+      <span class="r-rank">${s.gated?"&mdash;":rank}</span>
+      <span class="r-name">${escapeHtml(s.c.name)}${s.ref?`<span class="reftag">reference</span>`:""}${s.gated&&s.reason?`<span class="rreason">${s.reason}</span>`:""}</span>
+      <span class="r-score">${s.gated?`<span class="badge-out">excluded</span> <span class="gnum">${s.norm.toFixed(1)}</span>`:s.norm.toFixed(1)}</span>
+    </li>`;
+  }).join("") + `</ol>`;
+  document.querySelectorAll("#results .ranklist li").forEach(li=>{ li.onclick=()=>{ const nm=li.dataset.city; const i=radarSel.indexOf(nm); if(i>=0) radarSel.splice(i,1); else radarSel.push(nm); renderResults(); }; });
+  renderRadar();
+  saveState();
+}
+
+const SERIES = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8"];
+const CRIT_BLOCK = {}; BLOCKS.forEach((b,bi)=>b.crits.forEach(cr=>{ CRIT_BLOCK[cr.id]=bi; }));
+function renderBLegend(){ const el=document.getElementById("blegend"); if(!el) return; el.innerHTML = BLOCKS.map((b,bi)=>`<span><i class="bdot" style="background:var(--lb${bi})"></i>${BLOCK_SHORT[bi]||b.title}</span>`).join(""); }
+let radarSel = topFive(MASTER);
+function cityData(name){ return cities.find(c=>c.name===name) || MASTER.find(m=>m.name===name); }
+function seriesColor(idx){ return `var(${SERIES[idx%SERIES.length]})`; }
+function renderRadar(){
+  const svg=document.getElementById("radar"); if(!svg) return;
+  const crits=ALL_CRITS, n=crits.length, cx=300, cy=252, R=198;
+  const ang=i=>(-Math.PI/2)+i*2*Math.PI/n;
+  const pt=(i,f)=>[+(cx+Math.cos(ang(i))*R*f).toFixed(1), +(cy+Math.sin(ang(i))*R*f).toFixed(1)];
+  let s="";
+  for(let r=1;r<=5;r++) s+=`<polygon class="ring" points="${crits.map((_,i)=>pt(i,r/5).join(",")).join(" ")}"/>`;
+  crits.forEach((cr,i)=>{ const [x,y]=pt(i,1); s+=`<line class="raxis" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}"/>`;
+    const [lx,ly]=pt(i,1.1); const a=Math.abs(lx-cx)<10?"middle":(lx>cx?"start":"end");
+    s+=`<text class="axlab" x="${lx}" y="${ly}" text-anchor="${a}" dominant-baseline="middle" style="fill:var(--lb${CRIT_BLOCK[cr.id]})">${SHORT[cr.id]||cr.name}</text>`; });
+  radarSel.forEach(name=>{ const c=cityData(name); if(!c) return; const idx=MASTER.findIndex(m=>m.name===name); const col=seriesColor(idx<0?0:idx);
+    const pts=crits.map((cr,i)=>{ const v=c.s[cr.id]; const f=cr.binary?(v==null?0:v):((v||3)/5); return pt(i,f).join(","); }).join(" ");
+    s+=`<polygon class="petal" points="${pts}" style="stroke:${col}"/>`; });
+  svg.innerHTML=s;
+}
+
+function renderPMZ(){
+  const order=[], groups={};
+  PMZ.forEach(r=>{ const c=r[0]; if(!groups[c]){groups[c]=[];order.push(c);} groups[c].push(r); });
+  let html="";
+  order.forEach(country=>{
+    const det = PMZ_DETAILS[country];
+    groups[country].forEach((r,ri)=>{
+      const [c,route,income,leads,years,lang,maint]=r;
+      const cc = ri===0
+        ? `<td class="cn ${det?"cx":""}" ${det?`data-country="${escapeHtml(country)}"`:""}>${country}${det?` <span class="cxi">i</span>`:""}</td>`
+        : `<td></td>`;
+      html += `<tr class="${ri===0?"grp":""}">${cc}<td class="cv">${route}</td><td class="cv">${income}</td><td class="cv ctr">${leads}</td><td class="cp">${years}</td><td class="cp">${lang}</td><td class="cm">${maint}</td></tr>`;
+    });
+    if(det) html += `<tr class="pmz-detail" id="pd-${country.toLowerCase()}"><td colspan="7"><div class="pmz-detail-inner">${det}</div></td></tr>`;
+  });
+  document.getElementById("pmzbody").innerHTML = html;
+  document.querySelectorAll("#pmzbody .cn.cx").forEach(td=>{ td.onclick=()=>{ const d=document.getElementById("pd-"+td.dataset.country.toLowerCase()); if(d) d.classList.toggle("open"); td.classList.toggle("on"); }; });
+}
+
+document.querySelectorAll(".tab").forEach(t=>{ t.onclick = ()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active", x===t));
+  ["table","rating","pmz"].forEach(id=>document.getElementById("panel-"+id).classList.toggle("active", id===t.dataset.tab));
+  document.getElementById("modelNote").style.display = t.dataset.tab==="table" ? "" : "none";
+}; });
+
+document.getElementById("addCity").onchange = e=>{ const name=e.target.value; if(!name) return;
+  const m=MASTER.find(c=>c.name===name); if(m) cities.push(clone(m)); render(); };
+document.getElementById("resetBtn").onclick = ()=>{ if(!confirm("Reset all cities, weights and scores to the defaults? Your current edits will be lost.")) return; try{localStorage.removeItem(LS_KEY);}catch(e){} load(); radarSel = topFive(MASTER); render(); };
+let allOpen=false;
+document.getElementById("expandAll").onclick = (e)=>{ allOpen=!allOpen;
+  document.querySelectorAll(".rubric-row").forEach(r=>r.classList.toggle("open",allOpen));
+  document.querySelectorAll(".info").forEach(b=>b.classList.toggle("on",allOpen));
+  e.currentTarget.textContent = allOpen ? "Hide all rubrics" : "Show all rubrics"; };
+
+document.getElementById("exportBtn").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(serialize(),null,2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "reloscore.json"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+};
+document.getElementById("importBtn").onclick = ()=> document.getElementById("importFile").click();
+document.getElementById("importFile").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{ try{ const st = JSON.parse(rd.result); loadDefaults(); if(applyState(st)){ saveState(); render(); } else alert("Couldn't read this file."); }catch(err){ alert("Invalid JSON file."); } };
+  rd.readAsText(f); e.target.value = "";
+};
+
+loadStored();
+render();
+renderPMZ();
+renderBLegend();
+</script>
+</body>
+</html>
