@@ -295,10 +295,9 @@ function renderAddOptions(){
   const sel=document.getElementById("addCity");
   const refs = getRef();
   sel.innerHTML = `<option value="">+ Add city…</option>`
-    + `<option value="__new__">✎ New custom city…</option>`
-    + (refs.length ? `<optgroup label="Re-add removed">`
-        + refs.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} · ${escapeHtml(c.country)}</option>`).join("")
-        + `</optgroup>` : "");
+    + `<option value="__new__">+ New custom city…</option>`
+    + (refs.length ? `<option value="" disabled>— re-add removed —</option>`
+        + refs.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} · ${escapeHtml(c.country)}</option>`).join("") : "");
   sel.value = "";
 }
 
