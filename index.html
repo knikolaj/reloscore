@@ -59,6 +59,9 @@
   button.act:hover, select.act:hover { border-color: var(--accent); }
   button.act:active { transform: translateY(1px); }
   select.act.primary { border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  select.act { -webkit-appearance: none; appearance: none; padding-right: 34px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2,4.5L6,8.5L10,4.5' fill='none' stroke='%237a8794' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; background-size: 12px; }
   button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   .tablecard { background: var(--surface); border: 1px solid var(--hair); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
