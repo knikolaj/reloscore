@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>reloscore</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#0f7b82">
 <style>
   :root {
     --paper: #eceef1; --surface: #ffffff; --surface-2: #f5f6f8; --ink: #1b2431;
@@ -291,8 +293,13 @@ function escapeHtml(s){ return String(s).replace(/[&<>"]/g, m => ({"&":"&amp;","
 
 function renderAddOptions(){
   const sel=document.getElementById("addCity");
-  sel.innerHTML = `<option value="">+ Add city…</option>` +
-    getRef().map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} · ${escapeHtml(c.country)}</option>`).join("");
+  const refs = getRef();
+  sel.innerHTML = `<option value="">+ Add city…</option>`
+    + `<option value="__new__">✎ New custom city…</option>`
+    + (refs.length ? `<optgroup label="Re-add removed">`
+        + refs.map(c=>`<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} · ${escapeHtml(c.country)}</option>`).join("")
+        + `</optgroup>` : "");
+  sel.value = "";
 }
 
 function render(){
@@ -444,7 +451,18 @@ document.querySelectorAll(".tab").forEach(t=>{ t.onclick = ()=>{
 }; });
 
 document.getElementById("addCity").onchange = e=>{ const name=e.target.value; if(!name) return;
-  const m=MASTER.find(c=>c.name===name); if(m) cities.push(clone(m)); render(); };
+  if(name==="__new__"){
+    const s={}; ALL_CRITS.forEach(cr=> s[cr.id] = cr.binary ? 1 : 3);
+    cities.push({ name:"New city", country:"", g:{}, s });
+  } else {
+    const m=MASTER.find(c=>c.name===name); if(m) cities.push(clone(m));
+  }
+  render();
+  // switch to the Matrix tab so the added column is visible, and focus its name
+  document.querySelector('.tab[data-tab="table"]').click();
+  const inputs=headRow.querySelectorAll(".cityname"); const last=inputs[inputs.length-1];
+  if(last){ last.focus(); last.select(); }
+};
 document.getElementById("resetBtn").onclick = ()=>{ if(!confirm("Reset all cities, weights and scores to the defaults? Your current edits will be lost.")) return; try{localStorage.removeItem(LS_KEY);}catch(e){} load(); radarSel = topFive(MASTER); render(); };
 let allOpen=false;
 document.getElementById("expandAll").onclick = (e)=>{ allOpen=!allOpen;
