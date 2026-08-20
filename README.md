@@ -1,5 +1,7 @@
 # reloscore
 
+**▶ Live demo: [knikolaj.github.io/reloscore](https://knikolaj.github.io/reloscore/)**
+
 An interactive, self-hosted decision matrix for choosing **where to live** —
 scored as `[city, country]`, not just a country. You set the weights, rate each
 city, and it ranks them, draws a radar comparison, and keeps a reference tab of
